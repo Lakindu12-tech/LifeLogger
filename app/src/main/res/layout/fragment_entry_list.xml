@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MEMBER 2 RESPONSIBILITY: UI Layer - Entry List Layout -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Empty state message -->
+    <TextView
+        android:id="@+id/emptyStateText"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="No entries yet.\nTap + to create your first entry!"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:textColor="@android:color/darker_gray"
+        android:visibility="gone" />
+
+    <!-- RecyclerView for entries list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/entriesRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp" />
+
+    <!-- Floating Action Button to create new entry -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/createEntryButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_input_add"
+        android:contentDescription="Create new entry" />
+
+</FrameLayout>
+

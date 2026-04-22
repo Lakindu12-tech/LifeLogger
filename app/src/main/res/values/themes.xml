@@ -1,0 +1,11 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.LifeLogger" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="colorPrimary">@color/primary_blue</item>
+        <item name="colorPrimaryDark">@color/primary_dark_blue</item>
+        <item name="colorAccent">@color/accent_red</item>
+    </style>
+
+    <style name="Theme.LifeLogger" parent="Base.Theme.LifeLogger" />
+</resources>

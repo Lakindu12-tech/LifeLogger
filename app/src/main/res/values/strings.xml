@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">LifeLogger</string>
+    <string name="app_title">Life Logger</string>
+    <string name="my_entries">My Entries</string>
+    <string name="create_entry">Create Entry</string>
+    <string name="entry_details">Entry Details</string>
+
+    <!-- List Screen -->
+    <string name="no_entries">No entries yet.\nTap + to create your first entry!</string>
+    <string name="entry_title">Title</string>
+    <string name="entry_category">Category</string>
+    <string name="entry_content">Content</string>
+
+    <!-- Buttons -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="back">← Back</string>
+
+    <!-- Hints -->
+    <string name="hint_title">Entry Title (optional)</string>
+    <string name="hint_category">Category (e.g., workout, study, reflection)</string>
+    <string name="hint_content">What\'s on your mind?</string>
+
+    <!-- Messages -->
+    <string name="entry_saved">Entry saved!</string>
+    <string name="entry_deleted">Entry deleted</string>
+    <string name="entry_not_found">Entry not found</string>
+    <string name="permissions_denied">Some permissions were denied</string>
+
+    <!-- Sync Status -->
+    <string name="synced">✓ Synced to Cloud</string>
+    <string name="pending_sync">⊘ Pending Sync</string>
+</resources>

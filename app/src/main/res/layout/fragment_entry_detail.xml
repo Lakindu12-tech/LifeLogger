@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MEMBER 2 RESPONSIBILITY: UI Layer - Entry Detail Layout -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header with back button -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/backButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="← Back"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Date -->
+        <TextView
+            android:id="@+id/dateText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Category -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Category: " />
+
+            <TextView
+                android:id="@+id/categoryText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textColor="@color/design_default_color_primary" />
+        </LinearLayout>
+
+        <!-- Sync Status -->
+        <TextView
+            android:id="@+id/syncStatusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/darker_gray"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Content -->
+        <TextView
+            android:id="@+id/contentText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/deleteButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Delete"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>
+
