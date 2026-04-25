@@ -5,7 +5,30 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/entryListFragment">
+    app:startDestination="@id/loginFragment">
+
+    <!-- Login Fragment -->
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.example.lifelogger.ui.fragment.LoginFragment"
+        android:label="Login"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_loginFragment_to_entryListFragment"
+            app:destination="@id/entryListFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_loginFragment_to_registerFragment"
+            app:destination="@id/registerFragment" />
+    </fragment>
+
+    <!-- Register Fragment -->
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.example.lifelogger.ui.fragment.RegisterFragment"
+        android:label="Register"
+        tools:layout="@layout/fragment_register" />
 
     <!-- List Fragment: Shows all entries -->
     <fragment
@@ -29,4 +52,3 @@
         tools:layout="@layout/fragment_entry_detail" />
 
 </navigation>
-

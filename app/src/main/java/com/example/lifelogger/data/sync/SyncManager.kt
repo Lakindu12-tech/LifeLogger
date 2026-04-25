@@ -3,8 +3,8 @@ package com.example.lifelogger.data.sync
 import android.content.Context
 import android.util.Log
 import android.net.ConnectivityManager
-import com.example.lifelogger.data.firebase.FirebaseManager
 import com.example.lifelogger.data.repository.LogEntryRepository
+import com.example.lifelogger.data.supabase.SupabaseManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -13,18 +13,19 @@ import kotlinx.coroutines.withContext
  *
  * SyncManager orchestrates the synchronization process between:
  * - Local Room Database (always works)
- * - Firebase Cloud (when internet available)
+ * - Supabase Cloud (when internet available)
  *
  * Strategy:
  * 1. Always write to local database first (ensures data is never lost)
- * 2. When online, sync to Firebase in background
+ * 2. When online, sync to Supabase in background
  * 3. On download, merge cloud data with local using timestamps
  * 4. Last-write-wins: if conflict, use entry with latest timestamp
  */
 class SyncManager(
     private val context: Context,
     private val repository: LogEntryRepository,
-    private val firebaseManager: FirebaseManager
+    private val supabaseManager: SupabaseManager,
+    private val currentUserId: String
 ) {
 
     companion object {
@@ -52,8 +53,13 @@ class SyncManager(
      */
     suspend fun syncData() = withContext(Dispatchers.IO) {
         try {
-            if (!firebaseManager.isAvailable()) {
-                Log.d(TAG, "Firebase not configured - local database only mode")
+            if (!supabaseManager.isAvailable()) {
+                Log.d(TAG, "Supabase not configured - local database only mode")
+                return@withContext
+            }
+
+            if (currentUserId.isBlank()) {
+                Log.d(TAG, "No authenticated user - skipping sync")
                 return@withContext
             }
 
@@ -64,10 +70,10 @@ class SyncManager(
 
             Log.d(TAG, "Starting sync...")
 
-            // Step 1: Upload unsynced entries to Firebase
+            // Step 1: Upload unsynced entries to Supabase
             uploadUnsyncedEntries()
 
-            // Step 2: Download entries from Firebase and merge
+            // Step 2: Download entries from Supabase and merge
             downloadAndMergeEntries()
 
             Log.d(TAG, "Sync completed successfully")
@@ -81,11 +87,11 @@ class SyncManager(
      */
     private suspend fun uploadUnsyncedEntries() {
         try {
-            val unsyncedEntries = repository.getUnsyncedEntries()
+            val unsyncedEntries = repository.getUnsyncedEntriesByUser(currentUserId)
             Log.d(TAG, "Found ${unsyncedEntries.size} unsynced entries to upload")
 
             for (entry in unsyncedEntries) {
-                firebaseManager.uploadEntry(entry)
+                supabaseManager.uploadEntry(entry)
                 repository.markAsSynced(entry.id)
             }
         } catch (e: Exception) {
@@ -94,7 +100,7 @@ class SyncManager(
     }
 
     /**
-     * Download entries from Firebase and merge with local database
+     * Download entries from Supabase and merge with local database
      *
      * Merge strategy:
      * - If cloud entry doesn't exist locally: add it
@@ -103,11 +109,11 @@ class SyncManager(
      */
     private suspend fun downloadAndMergeEntries() {
         try {
-            val cloudEntries = firebaseManager.downloadAllEntries()
+            val cloudEntries = supabaseManager.downloadEntriesForCurrentUser()
             Log.d(TAG, "Downloaded ${cloudEntries.size} entries from cloud")
 
             for (cloudEntry in cloudEntries) {
-                val localEntry = repository.getEntryById(cloudEntry.id)
+                val localEntry = repository.getEntryByIdForUser(cloudEntry.id, currentUserId)
 
                 when {
                     // New entry from cloud

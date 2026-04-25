@@ -2,7 +2,7 @@ package com.example.lifelogger.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.google.firebase.database.IgnoreExtraProperties
+import kotlinx.serialization.Serializable
 
 /**
  * MEMBER 1 RESPONSIBILITY: Data Layer
@@ -12,48 +12,32 @@ import com.google.firebase.database.IgnoreExtraProperties
  * - Text content (what the user wrote)
  * - Timestamp (when it was created)
  * - List of attached images and audio files
- * - Sync status (whether it's been uploaded to Firebase)
+ * - Sync status (whether it's been uploaded to cloud)
  *
  * @Entity annotation tells Room this is a database table
  * @PrimaryKey ensures each entry has a unique ID
+ * @Serializable allows Supabase/Kotlinx-serialization to handle the data
  */
 @Entity(tableName = "log_entries")
-@IgnoreExtraProperties
+@Serializable
 data class LogEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    // The user who owns this entry (from Supabase Auth)
+    val userId: String = "",
+
     // The main text content written by the user
     val title: String = "",
     val content: String = "",
-
-    // When this entry was created (milliseconds since epoch)
+    
+    // ... rest of the fields
     val timestamp: Long = System.currentTimeMillis(),
-
-    // Category/type of entry (e.g., "workout", "study", "reflection", "event")
     val category: String = "general",
-
-    // Paths to attached files stored locally on device
-    val imageUri: String = "", // Local file path or URI
-    val audioUri: String = "",  // Local file path or URI
-
-    // Cloud sync status - to track if uploaded to Firebase
+    val imageUri: String = "",
+    val audioUri: String = "",
     val isSynced: Boolean = false,
-
-    // For conflict resolution during sync
     val lastModified: Long = System.currentTimeMillis()
-) {
-    // Empty constructor for Firebase deserialization
-    constructor() : this(
-        id = 0,
-        title = "",
-        content = "",
-        timestamp = System.currentTimeMillis(),
-        category = "general",
-        imageUri = "",
-        audioUri = "",
-        isSynced = false,
-        lastModified = System.currentTimeMillis()
-    )
-}
+)
+
 

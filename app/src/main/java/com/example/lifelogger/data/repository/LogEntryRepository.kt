@@ -8,7 +8,7 @@ import com.example.lifelogger.data.model.LogEntry
  * MEMBER 1 RESPONSIBILITY: Data Layer - Repository Pattern
  * 
  * Repository acts as a mediator between:
- * - Data sources (Local Database, Firebase)
+ * - Data sources (Local Database, Supabase sync)
  * - Business logic (ViewModels)
  * 
  * Benefits:
@@ -17,8 +17,8 @@ import com.example.lifelogger.data.model.LogEntry
  * 3. Can combine multiple data sources (local + cloud sync)
  * 4. Easier to test
  * 
- * This repository currently uses only local database.
- * Can be extended to include Firebase sync logic.
+ * This repository currently uses the local Room database.
+ * Cloud sync is handled separately by SyncManager.
  */
 class LogEntryRepository(private val logEntryDao: LogEntryDao) {
     
@@ -27,6 +27,12 @@ class LogEntryRepository(private val logEntryDao: LogEntryDao) {
      * Returns LiveData so UI is notified when data changes
      */
     fun getAllEntries(): LiveData<List<LogEntry>> = logEntryDao.getAllEntries()
+
+    /**
+     * Get entries for the signed-in user
+     */
+    fun getEntriesByUser(userId: String): LiveData<List<LogEntry>> =
+        logEntryDao.getEntriesByUser(userId)
     
     /**
      * Insert a new entry
@@ -58,17 +64,31 @@ class LogEntryRepository(private val logEntryDao: LogEntryDao) {
     suspend fun getEntryById(id: Long): LogEntry? {
         return logEntryDao.getEntryById(id)
     }
+
+    /**
+     * Get a single entry by ID that belongs to a specific user
+     */
+    suspend fun getEntryByIdForUser(id: Long, userId: String): LogEntry? {
+        return logEntryDao.getEntryByIdForUser(id, userId)
+    }
     
     /**
-     * Get entries that haven't been synced to Firebase
+     * Get entries that haven't been synced to cloud
      * Used in sync manager to determine what to upload
      */
     suspend fun getUnsyncedEntries(): List<LogEntry> {
         return logEntryDao.getUnsyncedEntries()
     }
+
+    /**
+     * Get unsynced entries for the currently signed-in user
+     */
+    suspend fun getUnsyncedEntriesByUser(userId: String): List<LogEntry> {
+        return logEntryDao.getUnsyncedEntriesByUser(userId)
+    }
     
     /**
-     * Mark an entry as successfully synced to Firebase
+     * Mark an entry as successfully synced to cloud
      */
     suspend fun markAsSynced(id: Long) {
         logEntryDao.markAsSynced(id)
@@ -79,6 +99,13 @@ class LogEntryRepository(private val logEntryDao: LogEntryDao) {
      */
     fun searchEntries(query: String): LiveData<List<LogEntry>> {
         return logEntryDao.searchEntries("%$query%")
+    }
+
+    /**
+     * Search entries belonging to a specific user
+     */
+    fun searchEntriesByUser(userId: String, query: String): LiveData<List<LogEntry>> {
+        return logEntryDao.searchEntriesByUser(userId, "%$query%")
     }
 }
 

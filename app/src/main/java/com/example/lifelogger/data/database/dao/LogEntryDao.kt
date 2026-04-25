@@ -49,20 +49,38 @@ interface LogEntryDao {
     fun getAllEntries(): LiveData<List<LogEntry>>
 
     /**
+     * Get entries for a specific user, newest first
+     */
+    @Query("SELECT * FROM log_entries WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getEntriesByUser(userId: String): LiveData<List<LogEntry>>
+
+    /**
      * Get a single entry by its ID
      */
     @Query("SELECT * FROM log_entries WHERE id = :id")
     suspend fun getEntryById(id: Long): LogEntry?
 
     /**
-     * Get entries that haven't been synced to Firebase yet
-     * Used when syncing data to cloud
+     * Get a single entry by ID owned by a specific user
+     */
+    @Query("SELECT * FROM log_entries WHERE id = :id AND userId = :userId")
+    suspend fun getEntryByIdForUser(id: Long, userId: String): LogEntry?
+
+    /**
+     * Get entries that haven't been synced to cloud yet
+     * Used when syncing data to Supabase
      */
     @Query("SELECT * FROM log_entries WHERE isSynced = 0")
     suspend fun getUnsyncedEntries(): List<LogEntry>
 
     /**
-     * Mark an entry as synced to Firebase
+     * Get unsynced entries for a specific user only
+     */
+    @Query("SELECT * FROM log_entries WHERE isSynced = 0 AND userId = :userId")
+    suspend fun getUnsyncedEntriesByUser(userId: String): List<LogEntry>
+
+    /**
+     * Mark an entry as synced to cloud
      */
     @Query("UPDATE log_entries SET isSynced = 1 WHERE id = :id")
     suspend fun markAsSynced(id: Long)
@@ -72,5 +90,11 @@ interface LogEntryDao {
      */
     @Query("SELECT * FROM log_entries WHERE content LIKE :searchQuery OR title LIKE :searchQuery ORDER BY timestamp DESC")
     fun searchEntries(searchQuery: String): LiveData<List<LogEntry>>
+
+    /**
+     * Search entries for a specific user only
+     */
+    @Query("SELECT * FROM log_entries WHERE userId = :userId AND (content LIKE :searchQuery OR title LIKE :searchQuery) ORDER BY timestamp DESC")
+    fun searchEntriesByUser(userId: String, searchQuery: String): LiveData<List<LogEntry>>
 }
 

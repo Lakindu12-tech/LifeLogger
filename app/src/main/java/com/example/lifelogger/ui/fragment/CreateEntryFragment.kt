@@ -1,19 +1,27 @@
 package com.example.lifelogger.ui.fragment
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaRecorder
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.example.lifelogger.data.model.LogEntry
+import com.example.lifelogger.data.supabase.SupabaseManager
 import com.example.lifelogger.databinding.FragmentCreateEntryBinding
 import com.example.lifelogger.ui.viewmodel.LogEntryViewModel
+import io.github.jan.supabase.gotrue.auth
+import java.io.File
 
 /**
  * MEMBER 2 RESPONSIBILITY: UI Layer - Create Entry Fragment
@@ -35,14 +43,29 @@ class CreateEntryFragment : Fragment() {
 
     private lateinit var binding: FragmentCreateEntryBinding
     private val viewModel: LogEntryViewModel by viewModels()
+    private val supabaseManager = SupabaseManager()
+    private var selectedImageUri: Uri? = null
+    private var audioFilePath: String? = null
+    private var recorder: MediaRecorder? = null
+    private var isRecording = false
+
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            selectedImageUri = uri
+            runCatching {
+                requireContext().contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            binding.selectedImagePreview.setImageURI(uri)
+            binding.selectedImagePreview.visibility = View.VISIBLE
+        }
+    }
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 100
-        private val REQUIRED_PERMISSIONS = arrayOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.CAMERA,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
+        private const val AUDIO_PERMISSION = Manifest.permission.RECORD_AUDIO
     }
 
     override fun onCreateView(
@@ -58,10 +81,19 @@ class CreateEntryFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Request permissions on fragment creation
-        requestPermissions()
+        requestAudioPermissionIfNeeded()
 
-        // Setup category spinner
-        setupCategorySpinner()
+        binding.attachImageButton.setOnClickListener {
+            imagePickerLauncher.launch(arrayOf("image/*"))
+        }
+
+        binding.startRecordingButton.setOnClickListener {
+            startAudioRecording()
+        }
+
+        binding.stopRecordingButton.setOnClickListener {
+            stopAudioRecording()
+        }
 
         // Save button listener
         binding.saveButton.setOnClickListener {
@@ -72,15 +104,6 @@ class CreateEntryFragment : Fragment() {
         binding.cancelButton.setOnClickListener {
             findNavController().navigateUp()
         }
-    }
-
-    /**
-     * Setup category dropdown spinner
-     */
-    private fun setupCategorySpinner() {
-        val categories = arrayOf("general", "workout", "study", "reflection", "event")
-        // Note: In production, use ArrayAdapter with a proper spinner
-        // For simplicity in this assignment, keeping it as text field
     }
 
     /**
@@ -98,11 +121,17 @@ class CreateEntryFragment : Fragment() {
             return
         }
 
+        // Get current user ID from Supabase
+        val userId = supabaseManager.client.auth.currentSessionOrNull()?.user?.id ?: ""
+
         // Create entry
         val entry = LogEntry(
+            userId = userId,
             title = title,
             content = content,
             category = category,
+            imageUri = selectedImageUri?.toString().orEmpty(),
+            audioUri = audioFilePath.orEmpty(),
             timestamp = System.currentTimeMillis(),
             lastModified = System.currentTimeMillis()
         )
@@ -116,23 +145,69 @@ class CreateEntryFragment : Fragment() {
         findNavController().navigateUp()
     }
 
-    /**
-     * Request required permissions (audio, camera, storage)
-     */
-    private fun requestPermissions() {
-        val permissionsToRequest = REQUIRED_PERMISSIONS.filter { permission ->
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                permission
-            ) != PackageManager.PERMISSION_GRANTED
+    private fun requestAudioPermissionIfNeeded() {
+        if (ContextCompat.checkSelfPermission(requireContext(), AUDIO_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(AUDIO_PERMISSION), PERMISSION_REQUEST_CODE)
+        }
+    }
+
+    private fun startAudioRecording() {
+        if (isRecording) return
+
+        if (ContextCompat.checkSelfPermission(requireContext(), AUDIO_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+            requestAudioPermissionIfNeeded()
+            Toast.makeText(requireContext(), "Microphone permission is required", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        if (permissionsToRequest.isNotEmpty()) {
-            requestPermissions(
-                permissionsToRequest.toTypedArray(),
-                PERMISSION_REQUEST_CODE
-            )
+        val outputFile = File(requireContext().filesDir, "audio_note_${System.currentTimeMillis()}.m4a")
+        audioFilePath = outputFile.absolutePath
+
+        recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(requireContext())
+        } else {
+            @Suppress("DEPRECATION")
+            MediaRecorder()
         }
+
+        runCatching {
+            recorder?.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(audioFilePath)
+                prepare()
+                start()
+            }
+        }.onSuccess {
+            isRecording = true
+            binding.audioStatusText.text = "Recording... tap Stop when done"
+            binding.startRecordingButton.isEnabled = false
+            binding.stopRecordingButton.isEnabled = true
+        }.onFailure {
+            releaseRecorder()
+            Toast.makeText(requireContext(), "Unable to start recording", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun stopAudioRecording() {
+        if (!isRecording) return
+
+        runCatching {
+            recorder?.stop()
+        }
+
+        releaseRecorder()
+        isRecording = false
+        binding.audioStatusText.text = "Audio note attached"
+        binding.startRecordingButton.isEnabled = true
+        binding.stopRecordingButton.isEnabled = false
+    }
+
+    private fun releaseRecorder() {
+        recorder?.reset()
+        recorder?.release()
+        recorder = null
     }
 
     override fun onRequestPermissionsResult(
@@ -143,15 +218,23 @@ class CreateEntryFragment : Fragment() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-            if (!allGranted) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
                 Toast.makeText(
                     requireContext(),
-                    "Some permissions were denied",
+                    "Microphone permission denied",
                     Toast.LENGTH_SHORT
                 ).show()
             }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (isRecording) {
+            runCatching { recorder?.stop() }
+        }
+        releaseRecorder()
     }
 }
 

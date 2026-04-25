@@ -1,6 +1,8 @@
 package com.example.lifelogger.ui.fragment
 
 import android.os.Bundle
+import android.media.MediaPlayer
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,7 +35,8 @@ class EntryDetailFragment : Fragment() {
     private lateinit var binding: FragmentEntryDetailBinding
     private val viewModel: LogEntryViewModel by viewModels()
     private var currentEntry: LogEntry? = null
-    
+    private var mediaPlayer: MediaPlayer? = null
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -100,7 +103,46 @@ class EntryDetailFragment : Fragment() {
             } else {
                 "⊘ Pending Sync"
             }
+
+            if (entry.imageUri.isNotBlank()) {
+                entryImageView.visibility = View.VISIBLE
+                entryImageView.setImageURI(Uri.parse(entry.imageUri))
+            } else {
+                entryImageView.visibility = View.GONE
+            }
+
+            if (entry.audioUri.isNotBlank()) {
+                playAudioButton.visibility = View.VISIBLE
+                playAudioButton.setOnClickListener {
+                    playAudio(entry.audioUri)
+                }
+            } else {
+                playAudioButton.visibility = View.GONE
+            }
         }
+    }
+
+    private fun playAudio(audioUri: String) {
+        runCatching {
+            mediaPlayer?.release()
+            mediaPlayer = MediaPlayer().apply {
+                if (audioUri.startsWith("content://")) {
+                    setDataSource(requireContext(), Uri.parse(audioUri))
+                } else {
+                    setDataSource(audioUri)
+                }
+                prepare()
+                start()
+            }
+        }.onFailure {
+            Toast.makeText(requireContext(), "Unable to play audio", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 }
 

@@ -97,6 +97,23 @@
             android:textColor="@android:color/black"
             android:layout_marginBottom="24dp" />
 
+        <ImageView
+            android:id="@+id/entryImageView"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginBottom="16dp"
+            android:adjustViewBounds="true"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/playAudioButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Play Audio Note"
+            android:visibility="gone" />
+
         <!-- Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
