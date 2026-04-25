@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">LifeLogger</string>
+    <string name="app_title">Life Logger</string>
+    <string name="my_entries">My Entries</string>
+    <string name="create_entry">Create Entry</string>
+    <string name="entry_details">Entry Details</string>
+
+    <!-- List Screen -->
+    <string name="no_entries">No entries yet.\nTap + to create your first entry!</string>
+    <string name="entry_title">Title</string>
+    <string name="entry_category">Category</string>
+    <string name="entry_content">Content</string>
+
+    <!-- Buttons -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="back">← Back</string>
+
+    <!-- Hints -->
+    <string name="hint_title">Entry Title (optional)</string>
+    <string name="hint_category">Category (e.g., workout, study, reflection)</string>
+    <string name="hint_content">What\'s on your mind?</string>
+
+    <!-- Messages -->
+    <string name="entry_saved">Entry saved!</string>
+    <string name="entry_deleted">Entry deleted</string>
+    <string name="entry_not_found">Entry not found</string>
+    <string name="permissions_denied">Some permissions were denied</string>
+
+    <!-- Sync Status -->
+    <string name="synced">✓ Synced to Cloud</string>
+    <string name="pending_sync">⊘ Pending Sync</string>
+    <!-- Auth -->
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="create_account">Create Account</string>
+    <string name="join_today">Join LifeLogger today</string>
+    <string name="dont_have_account">Don\'t have an account? Register</string>
+    <string name="already_have_account">Already have an account? Login</string>
+    <string name="logout">Logout</string>
+    <string name="login_success">Login Successful</string>
+    <string name="registration_success">Registration Successful. Please check your email.</string>
+    <string name="fill_fields">Please fill all fields</string>
+    <string name="passwords_dont_match">Passwords do not match</string>
+</resources>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MEMBER 2 RESPONSIBILITY: Navigation Configuration -->
+<!-- This defines how users navigate between fragments -->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <!-- Login Fragment -->
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.example.lifelogger.ui.fragment.LoginFragment"
+        android:label="Login"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_loginFragment_to_entryListFragment"
+            app:destination="@id/entryListFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_loginFragment_to_registerFragment"
+            app:destination="@id/registerFragment" />
+    </fragment>
+
+    <!-- Register Fragment -->
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.example.lifelogger.ui.fragment.RegisterFragment"
+        android:label="Register"
+        tools:layout="@layout/fragment_register" />
+
+    <!-- List Fragment: Shows all entries -->
+    <fragment
+        android:id="@+id/entryListFragment"
+        android:name="com.example.lifelogger.ui.fragment.EntryListFragment"
+        android:label="My Entries"
+        tools:layout="@layout/fragment_entry_list" />
+
+    <!-- Create Entry Fragment: Form to create new entry -->
+    <fragment
+        android:id="@+id/createEntryFragment"
+        android:name="com.example.lifelogger.ui.fragment.CreateEntryFragment"
+        android:label="New Entry"
+        tools:layout="@layout/fragment_create_entry" />
+
+    <!-- Entry Detail Fragment: View/edit single entry -->
+    <fragment
+        android:id="@+id/entryDetailFragment"
+        android:name="com.example.lifelogger.ui.fragment.EntryDetailFragment"
+        android:label="Entry Details"
+        tools:layout="@layout/fragment_entry_detail" />
+
+</navigation>
