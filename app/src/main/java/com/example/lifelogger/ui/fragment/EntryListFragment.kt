@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -20,6 +20,7 @@ import com.example.lifelogger.data.supabase.SupabaseManager
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.widget.Toast
 import kotlinx.coroutines.launch
 
 /**
@@ -33,7 +34,7 @@ import kotlinx.coroutines.launch
 class EntryListFragment : Fragment() {
     
     private lateinit var binding: FragmentEntryListBinding
-    private val viewModel: LogEntryViewModel by viewModels()
+    private val viewModel: LogEntryViewModel by activityViewModels()
     private val supabaseManager = SupabaseManager()
     
     override fun onCreateView(
@@ -48,6 +49,10 @@ class EntryListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel.syncNow()
+
+        if (arguments?.getBoolean("showDeleteHint") == true) {
+            Toast.makeText(requireContext(), getString(R.string.delete_entry_hint), Toast.LENGTH_LONG).show()
+        }
         
         setupMenu()
         
@@ -86,6 +91,11 @@ class EntryListFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.syncNow()
+    }
+
     private fun setupMenu() {
         requireActivity().addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
@@ -112,16 +122,16 @@ class EntryListFragment : Fragment() {
                     R.id.loginFragment,
                     null,
                     androidx.navigation.NavOptions.Builder()
-                        .setPopUpTo(R.id.entryListFragment, true)
+                        .setPopUpTo(R.id.dashboardFragment, true)
                         .build()
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Ignore error on sign out
                 findNavController().navigate(
                     R.id.loginFragment,
                     null,
                     androidx.navigation.NavOptions.Builder()
-                        .setPopUpTo(R.id.entryListFragment, true)
+                        .setPopUpTo(R.id.dashboardFragment, true)
                         .build()
                 )
             }

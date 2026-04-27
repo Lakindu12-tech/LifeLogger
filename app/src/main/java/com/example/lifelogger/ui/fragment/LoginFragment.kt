@@ -32,15 +32,15 @@ class LoginFragment : Fragment() {
 
         // If already logged in, go to list
         if (viewModel.isLoggedIn()) {
-            findNavController().navigate(R.id.action_loginFragment_to_entryListFragment)
+            findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
         }
 
         binding.loginButton.setOnClickListener {
-            val email = binding.emailInput.text.toString()
+            val username = binding.emailInput.text.toString()
             val password = binding.passwordInput.text.toString()
 
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                viewModel.login(email, password)
+            if (username.isNotEmpty() && password.isNotEmpty()) {
+                viewModel.login(username, password)
             } else {
                 Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
             }
@@ -63,7 +63,7 @@ class LoginFragment : Fragment() {
                 is AuthState.Success -> {
                     binding.progressBar.visibility = View.GONE
                     Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
-                    findNavController().navigate(R.id.action_loginFragment_to_entryListFragment)
+                    findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
                 }
                 is AuthState.Error -> {
                     binding.progressBar.visibility = View.GONE

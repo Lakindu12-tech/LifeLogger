@@ -4,6 +4,20 @@
     <color name="white">#FFFFFFFF</color>
     <color name="primary_blue">#2196F3</color>
     <color name="primary_dark_blue">#1976D2</color>
+    <color name="dashboard_blue_light">#6EC6FF</color>
+    <color name="dashboard_blue_deep">#1565C0</color>
     <color name="accent_red">#FF6B6B</color>
     <color name="light_gray">#F5F5F5</color>
+
+    <!-- Darker text colors for better readability in bright light -->
+    <color name="text_primary">#16202A</color>
+    <color name="text_secondary">#2F3A45</color>
+    <color name="text_tertiary">#455A64</color>
+    <color name="text_on_blue_header_sub">#B8D0EF</color>
+    <color name="text_on_blue_header_main">#E8F1FF</color>
+    <color name="text_blue_accent">#0D47A1</color>
+    <color name="text_delete_accent">#7A1F2B</color>
+    <color name="surface_app">#F7F9FC</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="surface_card_alt">#F1F5F9</color>
 </resources>

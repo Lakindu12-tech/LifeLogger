@@ -14,7 +14,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.example.lifelogger.data.model.LogEntry
 import com.example.lifelogger.data.supabase.SupabaseManager
@@ -42,12 +42,20 @@ import java.io.File
 class CreateEntryFragment : Fragment() {
 
     private lateinit var binding: FragmentCreateEntryBinding
-    private val viewModel: LogEntryViewModel by viewModels()
+    private val viewModel: LogEntryViewModel by activityViewModels()
     private val supabaseManager = SupabaseManager()
     private var selectedImageUri: Uri? = null
     private var audioFilePath: String? = null
     private var recorder: MediaRecorder? = null
     private var isRecording = false
+
+    private val audioPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            startAudioRecordingInternal()
+        } else {
+            Toast.makeText(requireContext(), "Microphone permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -64,7 +72,6 @@ class CreateEntryFragment : Fragment() {
     }
 
     companion object {
-        private const val PERMISSION_REQUEST_CODE = 100
         private const val AUDIO_PERMISSION = Manifest.permission.RECORD_AUDIO
     }
 
@@ -79,9 +86,6 @@ class CreateEntryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Request permissions on fragment creation
-        requestAudioPermissionIfNeeded()
 
         binding.attachImageButton.setOnClickListener {
             imagePickerLauncher.launch(arrayOf("image/*"))
@@ -111,6 +115,10 @@ class CreateEntryFragment : Fragment() {
      * Validates input and creates LogEntry
      */
     private fun saveEntry() {
+        if (isRecording) {
+            stopAudioRecording()
+        }
+
         val title = binding.titleInput.text.toString().trim()
         val content = binding.contentInput.text.toString().trim()
         val category = binding.categoryInput.text.toString().trim().ifEmpty { "general" }
@@ -141,24 +149,31 @@ class CreateEntryFragment : Fragment() {
 
         Toast.makeText(requireContext(), "Entry saved!", Toast.LENGTH_SHORT).show()
 
-        // Navigate back to list
-        findNavController().navigateUp()
+        // Open list so user can immediately see the new saved entry.
+        findNavController().navigate(
+            com.example.lifelogger.R.id.entryListFragment,
+            null,
+            androidx.navigation.NavOptions.Builder()
+                .setPopUpTo(com.example.lifelogger.R.id.createEntryFragment, true)
+                .build()
+        )
     }
 
     private fun requestAudioPermissionIfNeeded() {
         if (ContextCompat.checkSelfPermission(requireContext(), AUDIO_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(AUDIO_PERMISSION), PERMISSION_REQUEST_CODE)
+            audioPermissionLauncher.launch(AUDIO_PERMISSION)
+            return
         }
+        startAudioRecordingInternal()
     }
 
     private fun startAudioRecording() {
         if (isRecording) return
+        requestAudioPermissionIfNeeded()
+    }
 
-        if (ContextCompat.checkSelfPermission(requireContext(), AUDIO_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
-            requestAudioPermissionIfNeeded()
-            Toast.makeText(requireContext(), "Microphone permission is required", Toast.LENGTH_SHORT).show()
-            return
-        }
+    private fun startAudioRecordingInternal() {
+        if (isRecording) return
 
         val outputFile = File(requireContext().filesDir, "audio_note_${System.currentTimeMillis()}.m4a")
         audioFilePath = outputFile.absolutePath
@@ -185,6 +200,7 @@ class CreateEntryFragment : Fragment() {
             binding.startRecordingButton.isEnabled = false
             binding.stopRecordingButton.isEnabled = true
         }.onFailure {
+            audioFilePath = null
             releaseRecorder()
             Toast.makeText(requireContext(), "Unable to start recording", Toast.LENGTH_SHORT).show()
         }
@@ -193,13 +209,21 @@ class CreateEntryFragment : Fragment() {
     private fun stopAudioRecording() {
         if (!isRecording) return
 
-        runCatching {
+        val stopResult = runCatching {
             recorder?.stop()
         }
 
         releaseRecorder()
         isRecording = false
-        binding.audioStatusText.text = "Audio note attached"
+        val audioPath = audioFilePath
+        val hasAudio = audioPath != null && File(audioPath).exists() && File(audioPath).length() > 0L
+        if (stopResult.isSuccess && hasAudio) {
+            binding.audioStatusText.text = "Audio note attached"
+        } else {
+            audioFilePath = null
+            binding.audioStatusText.text = "No audio note attached"
+            Toast.makeText(requireContext(), "Recording failed, please try again", Toast.LENGTH_SHORT).show()
+        }
         binding.startRecordingButton.isEnabled = true
         binding.stopRecordingButton.isEnabled = false
     }
@@ -210,24 +234,6 @@ class CreateEntryFragment : Fragment() {
         recorder = null
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                Toast.makeText(
-                    requireContext(),
-                    "Microphone permission denied",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -235,6 +241,7 @@ class CreateEntryFragment : Fragment() {
             runCatching { recorder?.stop() }
         }
         releaseRecorder()
+        isRecording = false
     }
 }
 

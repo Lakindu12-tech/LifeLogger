@@ -19,28 +19,32 @@
             android:text="@string/create_account"
             android:textSize="32sp"
             android:textStyle="bold"
-            android:textColor="@color/primary_blue"
+            android:textColor="@color/text_blue_accent"
             android:layout_marginBottom="8dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/join_today"
-            android:textSize="18sp"
+            android:textColor="@color/text_secondary"
             android:layout_marginBottom="32dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
+            app:boxStrokeColor="@color/text_blue_accent"
+            app:hintTextColor="@color/text_secondary"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/emailInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/email"
-                android:inputType="textEmailAddress" />
+                android:hint="@string/username"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:inputType="textNoSuggestions" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -48,6 +52,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:passwordToggleEnabled="true"
+            app:boxStrokeColor="@color/text_blue_accent"
+            app:hintTextColor="@color/text_secondary"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -55,6 +61,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/password"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -63,6 +71,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             app:passwordToggleEnabled="true"
+            app:boxStrokeColor="@color/text_blue_accent"
+            app:hintTextColor="@color/text_secondary"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -70,6 +80,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/confirm_password"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -86,7 +98,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/already_have_account"
-            android:textColor="@color/primary_blue"
+            android:textColor="@color/text_blue_accent"
             android:padding="8dp" />
 
         <ProgressBar

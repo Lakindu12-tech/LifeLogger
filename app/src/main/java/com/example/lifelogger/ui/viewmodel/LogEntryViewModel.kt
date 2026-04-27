@@ -3,7 +3,6 @@ package com.example.lifelogger.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.lifelogger.data.database.LifeLoggerDatabase
 import com.example.lifelogger.data.model.LogEntry
@@ -33,15 +32,19 @@ class LogEntryViewModel(application: Application) : AndroidViewModel(application
     private val database = LifeLoggerDatabase.getDatabase(application)
     private val repository = LogEntryRepository(database.logEntryDao())
     private val supabaseManager = SupabaseManager()
-    private val currentUserId = supabaseManager.client.auth.currentSessionOrNull()?.user?.id.orEmpty()
-    private val syncManager = SyncManager(application, repository, supabaseManager, currentUserId)
+    private val appContext = application
+
+    private fun currentUserId(): String {
+        return supabaseManager.client.auth.currentSessionOrNull()?.user?.id.orEmpty()
+    }
+
+    private suspend fun syncIfPossible(userId: String = currentUserId()) {
+        if (userId.isBlank()) return
+        SyncManager(appContext, repository, supabaseManager, userId).syncData()
+    }
 
     // LiveData that UI observes for list of entries
-    val allEntries: LiveData<List<LogEntry>> = if (currentUserId.isNotBlank()) {
-        repository.getEntriesByUser(currentUserId)
-    } else {
-        MutableLiveData(emptyList())
-    }
+    val allEntries: LiveData<List<LogEntry>> = repository.getAllEntries()
 
     /**
      * Insert a new entry into database
@@ -50,13 +53,14 @@ class LogEntryViewModel(application: Application) : AndroidViewModel(application
      */
     fun insertEntry(entry: LogEntry) {
         viewModelScope.launch {
-            val entryForCurrentUser = if (entry.userId.isBlank() && currentUserId.isNotBlank()) {
-                entry.copy(userId = currentUserId)
+            val userId = if (entry.userId.isNotBlank()) entry.userId else currentUserId()
+            val entryForCurrentUser = if (userId.isNotBlank()) {
+                entry.copy(userId = userId)
             } else {
                 entry
             }
             repository.insertEntry(entryForCurrentUser)
-            syncManager.syncData()
+            syncIfPossible(userId)
         }
     }
 
@@ -66,7 +70,7 @@ class LogEntryViewModel(application: Application) : AndroidViewModel(application
     fun updateEntry(entry: LogEntry) {
         viewModelScope.launch {
             repository.updateEntry(entry)
-            syncManager.syncData()
+            syncIfPossible(entry.userId)
         }
     }
 
@@ -76,7 +80,7 @@ class LogEntryViewModel(application: Application) : AndroidViewModel(application
     fun deleteEntry(entry: LogEntry) {
         viewModelScope.launch {
             runCatching {
-                if (supabaseManager.isAvailable()) {
+                if (supabaseManager.isAvailable() && currentUserId().isNotBlank()) {
                     supabaseManager.deleteEntry(entry.id)
                 }
             }
@@ -91,11 +95,7 @@ class LogEntryViewModel(application: Application) : AndroidViewModel(application
      */
     fun getEntryById(id: Long, callback: (LogEntry?) -> Unit) {
         viewModelScope.launch {
-            val entry = if (currentUserId.isBlank()) {
-                null
-            } else {
-                repository.getEntryByIdForUser(id, currentUserId)
-            }
+            val entry = repository.getEntryById(id)
             callback(entry)
         }
     }
@@ -104,16 +104,17 @@ class LogEntryViewModel(application: Application) : AndroidViewModel(application
      * Search entries by query text
      */
     fun searchEntries(query: String): LiveData<List<LogEntry>> {
-        return if (currentUserId.isBlank()) {
-            MutableLiveData(emptyList())
+        val userId = currentUserId()
+        return if (userId.isBlank()) {
+            repository.searchEntries(query)
         } else {
-            repository.searchEntriesByUser(currentUserId, query)
+            repository.searchEntriesByUser(userId, query)
         }
     }
 
     fun syncNow() {
         viewModelScope.launch {
-            syncManager.syncData()
+            syncIfPossible()
         }
     }
 }

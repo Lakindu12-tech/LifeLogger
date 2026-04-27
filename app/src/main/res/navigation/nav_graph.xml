@@ -14,13 +14,26 @@
         android:label="Login"
         tools:layout="@layout/fragment_login">
         <action
-            android:id="@+id/action_loginFragment_to_entryListFragment"
-            app:destination="@id/entryListFragment"
+            android:id="@+id/action_loginFragment_to_dashboardFragment"
+            app:destination="@id/dashboardFragment"
             app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
         <action
             android:id="@+id/action_loginFragment_to_registerFragment"
             app:destination="@id/registerFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.example.lifelogger.ui.fragment.DashboardFragment"
+        android:label="Dashboard"
+        tools:layout="@layout/fragment_dashboard">
+        <action
+            android:id="@+id/action_dashboardFragment_to_createEntryFragment"
+            app:destination="@id/createEntryFragment" />
+        <action
+            android:id="@+id/action_dashboardFragment_to_entryListFragment"
+            app:destination="@id/entryListFragment" />
     </fragment>
 
     <!-- Register Fragment -->

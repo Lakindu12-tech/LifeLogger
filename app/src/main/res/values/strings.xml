@@ -7,6 +7,8 @@
 
     <!-- List Screen -->
     <string name="no_entries">No entries yet.\nTap + to create your first entry!</string>
+    <string name="entries_section_title">Your Entries</string>
+    <string name="entries_section_subtitle">Tap any entry to open details and manage it.</string>
     <string name="entry_title">Title</string>
     <string name="entry_category">Category</string>
     <string name="entry_content">Content</string>
@@ -34,7 +36,7 @@
     <!-- Auth -->
     <string name="login">Login</string>
     <string name="register">Register</string>
-    <string name="email">Email</string>
+    <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="confirm_password">Confirm Password</string>
     <string name="welcome_back">Welcome Back</string>
@@ -44,7 +46,17 @@
     <string name="already_have_account">Already have an account? Login</string>
     <string name="logout">Logout</string>
     <string name="login_success">Login Successful</string>
-    <string name="registration_success">Registration Successful. Please check your email.</string>
+    <string name="registration_success">Registration successful. You can log in now.</string>
     <string name="fill_fields">Please fill all fields</string>
     <string name="passwords_dont_match">Passwords do not match</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="welcome_user">Welcome %1$s</string>
+    <string name="dashboard_subtitle">Capture moments, revisit memories, and keep everything offline-first.</string>
+    <string name="dashboard_quick_actions">Quick actions</string>
+    <string name="add_new_entry">Add New Entry</string>
+    <string name="previous_entries">Previous Entries</string>
+    <string name="delete_entry_action">Delete Entry</string>
+    <string name="delete_entry_hint">Open an entry from the list, then tap Delete.</string>
 </resources>

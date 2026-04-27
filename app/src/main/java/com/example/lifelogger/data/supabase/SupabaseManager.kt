@@ -26,10 +26,11 @@ class SupabaseManager {
     companion object {
         private const val TAG = "SupabaseManager"
         private const val TABLE_ENTRIES = "log_entries"
-        
-        // TODO: Replace with your actual Supabase URL and Anon Key
-        private const val SUPABASE_URL = "https://imqpnudwhsrcqwyyypsv.supabase.co"
-        private const val SUPABASE_KEY = "sb_publishable_od0s5SfonOau3RNCQ4ey-Q_vD-UCXZj"
+
+        // Android app uses the Supabase REST client with the public project URL and publishable key.
+        // The PostgreSQL connection string is not used inside the mobile app.
+        private const val SUPABASE_URL = "https://iaouuzdervnurhhqlzvc.supabase.co"
+        private const val SUPABASE_KEY = "sb_publishable_VNdf44jszD9OYc5IzN0SOw_Lwb6F6aq"
     }
 
     val client: SupabaseClient by lazy {
@@ -49,10 +50,8 @@ class SupabaseManager {
      * Check if Supabase is configured with real values
      */
     fun isAvailable(): Boolean {
-        return SUPABASE_URL.isNotBlank() &&
-            SUPABASE_KEY.isNotBlank() &&
-            !SUPABASE_URL.contains("your-project", ignoreCase = true) &&
-            !SUPABASE_KEY.contains("your-anon-key", ignoreCase = true)
+        return SUPABASE_URL == "https://iaouuzdervnurhhqlzvc.supabase.co" &&
+            SUPABASE_KEY == "sb_publishable_VNdf44jszD9OYc5IzN0SOw_Lwb6F6aq"
     }
 
     fun currentUserId(): String = client.auth.currentSessionOrNull()?.user?.id.orEmpty()

@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import com.example.lifelogger.R
 import com.example.lifelogger.databinding.FragmentRegisterBinding
 import com.example.lifelogger.ui.viewmodel.AuthState
 import com.example.lifelogger.ui.viewmodel.AuthViewModel
@@ -31,13 +30,13 @@ class RegisterFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.registerButton.setOnClickListener {
-            val email = binding.emailInput.text.toString()
+            val username = binding.emailInput.text.toString()
             val password = binding.passwordInput.text.toString()
             val confirmPassword = binding.confirmPasswordInput.text.toString()
 
-            if (email.isNotEmpty() && password.isNotEmpty()) {
+            if (username.isNotEmpty() && password.isNotEmpty()) {
                 if (password == confirmPassword) {
-                    viewModel.register(email, password)
+                    viewModel.register(username, password)
                 } else {
                     Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
                 }
@@ -62,7 +61,7 @@ class RegisterFragment : Fragment() {
                 }
                 is AuthState.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(context, "Registration Successful. Please check your email if confirmation is required.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Registration successful. You can log in now.", Toast.LENGTH_LONG).show()
                     findNavController().popBackStack()
                 }
                 is AuthState.Error -> {

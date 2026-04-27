@@ -19,7 +19,7 @@
         android:background="?attr/colorPrimary"
         android:elevation="4dp"
         app:title="Life Logger"
-        app:titleTextColor="@android:color/white" />
+        app:titleTextColor="@color/text_on_blue_header_main" />
 
     <!-- Fragment Container (Navigation Host) -->
     <androidx.fragment.app.FragmentContainerView
