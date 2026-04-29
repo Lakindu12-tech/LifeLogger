@@ -134,8 +134,8 @@ class CreateEntryFragment : Fragment() {
 
     /**
      * Save entry to database
-     * Validates input and creates LogEntry
-     * Then uploads media to Supabase if available
+     * Validates input and creates LogEntry with local media URIs
+     * Media is stored locally in app storage
      */
     private fun saveEntry() {
         if (isRecording) {
@@ -168,29 +168,25 @@ class CreateEntryFragment : Fragment() {
             return
         }
 
-        // Create entry without media URIs initially
-        // Media will be uploaded and URIs set separately
+        // Create entry WITH local media paths
+        // Media files are saved locally; we store the local file paths in database
         val entry = LogEntry(
             userId = userId,
             title = title,
             content = content,
             category = category,
-            imageUri = "",
-            audioUri = "",
+            imageUri = selectedImageUri?.toString().orEmpty(),  // Store local URI
+            audioUri = audioFilePath.orEmpty(),  // Store local file path
             timestamp = System.currentTimeMillis(),
             lastModified = System.currentTimeMillis()
         )
 
-        Log.d(TAG, "[saveEntry] Saving entry locally")
-        // Save using ViewModel
+        Log.d(TAG, "[saveEntry] Saving entry with local media to Room")
+        // Save using ViewModel (includes media URIs)
         viewModel.insertEntry(entry)
 
         Toast.makeText(requireContext(), "Entry saved!", Toast.LENGTH_SHORT).show()
 
-        // Upload media to Supabase asynchronously
-        // This will update the entry with media URLs once upload completes
-        Log.d(TAG, "[saveEntry] Starting media upload (async)")
-        viewModel.uploadMediaAndUpdateEntry(entry, selectedImageUri, audioFilePath)
 
         // Open list so user can immediately see the new saved entry
         findNavController().navigate(
