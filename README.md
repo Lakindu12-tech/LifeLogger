@@ -17,6 +17,8 @@ LifeLogger is a simple Android personal life logger made for a college assignmen
 - Delete entries
 - Keep data stored locally in **Room**
 - Sync entries to **Supabase** when online
+- **Upload images and audio to Supabase Storage** (new!)
+- Display media from cloud storage in entry details
 - Show sync status in the entry detail screen
 
 ## Technologies used
@@ -33,18 +35,18 @@ LifeLogger is a simple Android personal life logger made for a college assignmen
 - **RecyclerView**
 - **Kotlin Coroutines**
 - **Supabase**
-  - Auth
-  - Postgrest database access
-  - Storage dependency included in the project setup
+  - Auth (username/password)
+  - Postgrest (database access)
+  - Storage (image and audio file storage)
 
 ## Main app screens
 
-- `LoginFragment`
-- `RegisterFragment`
-- `DashboardFragment`
-- `CreateEntryFragment`
-- `EntryListFragment`
-- `EntryDetailFragment`
+- `LoginFragment` - User login with username/password
+- `RegisterFragment` - User registration
+- `DashboardFragment` - Welcome screen with action buttons
+- `CreateEntryFragment` - Create entry with media attachments
+- `EntryListFragment` - List of user's entries  
+- `EntryDetailFragment` - View entry details with media playback
 
 ## Main project layers
 
@@ -73,10 +75,34 @@ The Supabase table used by the app is `public.log_entries`. It stores:
 - `content`
 - `timestamp`
 - `category`
-- `imageUri`
-- `audioUri`
+- `imageUri` - Public URL to image in Supabase Storage
+- `audioUri` - Public URL to audio in Supabase Storage
 - `isSynced`
 - `lastModified`
+
+## Media Storage (Images and Audio)
+
+Images and audio files are uploaded to **Supabase Storage** in the `entry_media` bucket:
+
+**Storage path structure:**
+```
+entry_media/
+└── users/{userId}/entries/{entryId}/
+    ├── image.jpg
+    └── audio.m4a
+```
+
+**How it works:**
+1. User creates entry and selects/records media
+2. Entry saved to local Room database
+3. Media files uploaded asynchronously to Supabase Storage
+4. `imageUri` and `audioUri` updated with public Storage URLs
+5. When viewing entry, media loads from Supabase Storage URLs
+6. Media persists in cloud even after app uninstall/reinstall
+
+**Setup required:**
+- See `MEDIA_SETUP_CHECKLIST.md` for Supabase Storage bucket creation
+- See `SUPABASE_MEDIA_SETUP.md` for detailed setup instructions
 
 ## Permissions used
 
