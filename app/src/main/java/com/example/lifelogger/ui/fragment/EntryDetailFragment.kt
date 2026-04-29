@@ -3,6 +3,7 @@ package com.example.lifelogger.ui.fragment
 import android.os.Bundle
 import android.media.MediaPlayer
 import android.net.Uri
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -32,6 +33,10 @@ import java.util.Locale
  */
 class EntryDetailFragment : Fragment() {
     
+    companion object {
+        private const val TAG = "EntryDetailFragment"
+    }
+
     private lateinit var binding: FragmentEntryDetailBinding
     private val viewModel: LogEntryViewModel by activityViewModels()
     private var currentEntry: LogEntry? = null
@@ -48,38 +53,67 @@ class EntryDetailFragment : Fragment() {
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
+        if (!viewModel.hasActiveUser()) {
+            Log.w(TAG, "[onViewCreated] No active user, redirecting to login")
+            findNavController().navigate(
+                com.example.lifelogger.R.id.loginFragment,
+                null,
+                androidx.navigation.NavOptions.Builder()
+                    .setPopUpTo(com.example.lifelogger.R.id.loginFragment, true)
+                    .build()
+            )
+            return
+        }
+
         // Get entry ID from arguments bundle
         val entryId = arguments?.getLong("entryId") ?: 0L
-        
+        Log.d(TAG, "[onViewCreated] Loading entry id=$entryId")
+
         if (entryId <= 0) {
+            Log.w(TAG, "[onViewCreated] Invalid entryId=$entryId")
             Toast.makeText(requireContext(), "Entry not found", Toast.LENGTH_SHORT).show()
             findNavController().navigateUp()
             return
         }
         
-        // Load entry from database
+        // Load entry from database with defensive callback
         viewModel.getEntryById(entryId) { entry ->
-            if (entry != null) {
-                currentEntry = entry
-                displayEntry(entry)
-            } else {
-                Toast.makeText(requireContext(), "Entry not found", Toast.LENGTH_SHORT).show()
-                findNavController().navigateUp()
+            // Guard: Fragment may have been destroyed before callback returns
+            if (!isAdded) {
+                Log.d(TAG, "[getEntryById callback] Fragment no longer added, ignoring")
+                return@getEntryById
             }
+
+            if (entry == null) {
+                Log.e(TAG, "[getEntryById callback] Entry returned as NULL for id=$entryId")
+                Toast.makeText(requireContext(), "Entry could not be loaded", Toast.LENGTH_SHORT).show()
+                findNavController().navigateUp()
+                return@getEntryById
+            }
+
+            Log.d(TAG, "[getEntryById callback] Successfully loaded entry: ${entry.title}")
+            currentEntry = entry
+            displayEntry(entry)
         }
         
-        // Delete button
+        // Delete button - with null check
         binding.deleteButton.setOnClickListener {
-            currentEntry?.let { entry ->
-                viewModel.deleteEntry(entry)
-                Toast.makeText(requireContext(), "Entry deleted", Toast.LENGTH_SHORT).show()
-                findNavController().navigateUp()
+            val entry = currentEntry
+            if (entry == null) {
+                Log.w(TAG, "[deleteButton] currentEntry is null, ignoring delete")
+                Toast.makeText(requireContext(), "No entry to delete", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+            Log.d(TAG, "[deleteButton] Deleting entry id=${entry.id}")
+            viewModel.deleteEntry(entry)
+            Toast.makeText(requireContext(), "Entry deleted", Toast.LENGTH_SHORT).show()
+            findNavController().navigateUp()
         }
         
         // Back button
         binding.backButton.setOnClickListener {
+            Log.d(TAG, "[backButton] Navigating back")
             findNavController().navigateUp()
         }
     }
@@ -106,7 +140,14 @@ class EntryDetailFragment : Fragment() {
 
             if (entry.imageUri.isNotBlank()) {
                 entryImageView.visibility = View.VISIBLE
-                entryImageView.setImageURI(Uri.parse(entry.imageUri))
+                // Loading a persisted content URI can throw (SecurityException / IllegalArgumentException)
+                // if the permission is no longer granted. Guard against crashes by catching failures
+                // and hiding the image view if loading fails.
+                runCatching {
+                    entryImageView.setImageURI(Uri.parse(entry.imageUri))
+                }.onFailure {
+                    entryImageView.visibility = View.GONE
+                }
             } else {
                 entryImageView.visibility = View.GONE
             }

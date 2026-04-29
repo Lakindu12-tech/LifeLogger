@@ -1,6 +1,7 @@
 package com.example.lifelogger.ui.fragment
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.lifelogger.R
+import com.example.lifelogger.data.auth.SessionManager
 import com.example.lifelogger.databinding.FragmentEntryListBinding
 import com.example.lifelogger.ui.adapter.LogEntryAdapter
 import com.example.lifelogger.ui.viewmodel.LogEntryViewModel
@@ -33,10 +35,15 @@ import kotlinx.coroutines.launch
  */
 class EntryListFragment : Fragment() {
     
+    companion object {
+        private const val TAG = "EntryListFragment"
+    }
+
     private lateinit var binding: FragmentEntryListBinding
     private val viewModel: LogEntryViewModel by activityViewModels()
     private val supabaseManager = SupabaseManager()
-    
+    private lateinit var sessionManager: SessionManager
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -48,6 +55,23 @@ class EntryListFragment : Fragment() {
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        Log.d(TAG, "[onViewCreated] Fragment created")
+        sessionManager = SessionManager(requireContext())
+        viewModel.refreshActiveUser()
+
+        if (!viewModel.hasActiveUser()) {
+            Log.w(TAG, "[onViewCreated] No active user, redirecting to login")
+            findNavController().navigate(
+                R.id.loginFragment,
+                null,
+                androidx.navigation.NavOptions.Builder()
+                    .setPopUpTo(R.id.loginFragment, true)
+                    .build()
+            )
+            return
+        }
+
+        Log.d(TAG, "[onViewCreated] Active user confirmed, syncing now")
         viewModel.syncNow()
 
         if (arguments?.getBoolean("showDeleteHint") == true) {
@@ -58,6 +82,7 @@ class EntryListFragment : Fragment() {
         
         // Setup RecyclerView with adapter
         val adapter = LogEntryAdapter { entry ->
+            Log.d(TAG, "[adapter.onItemClick] User clicked entry id=${entry.id}, title=${entry.title}")
             // Navigate to detail fragment and pass entry ID via bundle
             val bundle = Bundle().apply {
                 putLong("entryId", entry.id)
@@ -70,16 +95,26 @@ class EntryListFragment : Fragment() {
             this.adapter = adapter
         }
         
-        // Observe entries from ViewModel
-        // When data changes, adapter automatically updates with animation
+        // Observe entries from ViewModel  with defensive null checks
         viewModel.allEntries.observe(viewLifecycleOwner) { entries ->
+            Log.d(TAG, "[allEntries observer] Received ${entries?.size ?: 0} entries")
+            if (entries == null) {
+                Log.w(TAG, "[allEntries observer] entries list is NULL!")
+                adapter.submitList(emptyList())
+                binding.emptyStateText.visibility = View.VISIBLE
+                binding.entriesRecyclerView.visibility = View.GONE
+                return@observe
+            }
+
             adapter.submitList(entries)
             
             // Show/hide empty state message
             if (entries.isEmpty()) {
+                Log.d(TAG, "[allEntries observer] No entries, showing empty state")
                 binding.emptyStateText.visibility = View.VISIBLE
                 binding.entriesRecyclerView.visibility = View.GONE
             } else {
+                Log.d(TAG, "[allEntries observer] Showing ${entries.size} entries")
                 binding.emptyStateText.visibility = View.GONE
                 binding.entriesRecyclerView.visibility = View.VISIBLE
             }
@@ -87,6 +122,7 @@ class EntryListFragment : Fragment() {
         
         // FAB (Floating Action Button) - navigate to create entry screen
         binding.createEntryButton.setOnClickListener {
+            Log.d(TAG, "[createEntryButton] Navigate to create entry")
             findNavController().navigate(R.id.createEntryFragment)
         }
     }
@@ -115,9 +151,16 @@ class EntryListFragment : Fragment() {
     }
 
     private fun logoutUser() {
+        Log.d(TAG, "[logoutUser] User logging out")
         viewLifecycleOwner.lifecycleScope.launch {
+            // Clear session prefs and notify ViewModel so LiveData resets
+            sessionManager.clearActiveUser()
+            Log.d(TAG, "[logoutUser] Session cleared from prefs")
+            viewModel.refreshActiveUser()
+            Log.d(TAG, "[logoutUser] ViewModel activeUser refreshed")
             try {
                 supabaseManager.client.auth.signOut()
+                Log.d(TAG, "[logoutUser] Supabase signOut succeeded")
                 findNavController().navigate(
                     R.id.loginFragment,
                     null,
@@ -125,7 +168,8 @@ class EntryListFragment : Fragment() {
                         .setPopUpTo(R.id.dashboardFragment, true)
                         .build()
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.w(TAG, "[logoutUser] Supabase signOut failed", e)
                 // Ignore error on sign out
                 findNavController().navigate(
                     R.id.loginFragment,

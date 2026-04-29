@@ -61,8 +61,15 @@ class RegisterFragment : Fragment() {
                 }
                 is AuthState.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(context, "Registration successful. You can log in now.", Toast.LENGTH_LONG).show()
-                    findNavController().popBackStack()
+                    binding.registerButton.isEnabled = true
+                    Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                    findNavController().navigate(
+                        com.example.lifelogger.R.id.dashboardFragment,
+                        null,
+                        androidx.navigation.NavOptions.Builder()
+                            .setPopUpTo(com.example.lifelogger.R.id.loginFragment, true)
+                            .build()
+                    )
                 }
                 is AuthState.Error -> {
                     binding.progressBar.visibility = View.GONE

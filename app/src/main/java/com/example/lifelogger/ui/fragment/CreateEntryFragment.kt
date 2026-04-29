@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import com.example.lifelogger.data.auth.SessionManager
 import com.example.lifelogger.data.model.LogEntry
 import com.example.lifelogger.data.supabase.SupabaseManager
 import com.example.lifelogger.databinding.FragmentCreateEntryBinding
@@ -44,6 +45,7 @@ class CreateEntryFragment : Fragment() {
     private lateinit var binding: FragmentCreateEntryBinding
     private val viewModel: LogEntryViewModel by activityViewModels()
     private val supabaseManager = SupabaseManager()
+    private lateinit var sessionManager: SessionManager
     private var selectedImageUri: Uri? = null
     private var audioFilePath: String? = null
     private var recorder: MediaRecorder? = null
@@ -66,8 +68,14 @@ class CreateEntryFragment : Fragment() {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             }
-            binding.selectedImagePreview.setImageURI(uri)
-            binding.selectedImagePreview.visibility = View.VISIBLE
+            // Setting the preview image may throw if the URI cannot be accessed for some reason;
+            // protect against crashes and simply hide the preview on failure.
+            runCatching {
+                binding.selectedImagePreview.setImageURI(uri)
+                binding.selectedImagePreview.visibility = View.VISIBLE
+            }.onFailure {
+                binding.selectedImagePreview.visibility = View.GONE
+            }
         }
     }
 
@@ -86,6 +94,18 @@ class CreateEntryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        sessionManager = SessionManager(requireContext())
+
+        if (!viewModel.hasActiveUser()) {
+            findNavController().navigate(
+                com.example.lifelogger.R.id.loginFragment,
+                null,
+                androidx.navigation.NavOptions.Builder()
+                    .setPopUpTo(com.example.lifelogger.R.id.loginFragment, true)
+                    .build()
+            )
+            return
+        }
 
         binding.attachImageButton.setOnClickListener {
             imagePickerLauncher.launch(arrayOf("image/*"))
@@ -130,7 +150,20 @@ class CreateEntryFragment : Fragment() {
         }
 
         // Get current user ID from Supabase
-        val userId = supabaseManager.client.auth.currentSessionOrNull()?.user?.id ?: ""
+        val userId = supabaseManager.client.auth.currentSessionOrNull()?.user?.id
+            ?: sessionManager.getActiveUserId()
+
+        if (userId.isBlank()) {
+            Toast.makeText(requireContext(), "Please log in first", Toast.LENGTH_SHORT).show()
+            findNavController().navigate(
+                com.example.lifelogger.R.id.loginFragment,
+                null,
+                androidx.navigation.NavOptions.Builder()
+                    .setPopUpTo(com.example.lifelogger.R.id.loginFragment, true)
+                    .build()
+            )
+            return
+        }
 
         // Create entry
         val entry = LogEntry(

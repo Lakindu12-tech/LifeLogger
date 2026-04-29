@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
+import com.example.lifelogger.ui.viewmodel.LogEntryViewModel
 import androidx.navigation.fragment.findNavController
 import com.example.lifelogger.R
 import com.example.lifelogger.databinding.FragmentLoginBinding
@@ -18,6 +20,7 @@ class LoginFragment : Fragment() {
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
     private val viewModel: AuthViewModel by viewModels()
+    private val entriesViewModel: LogEntryViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -29,11 +32,6 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // If already logged in, go to list
-        if (viewModel.isLoggedIn()) {
-            findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
-        }
 
         binding.loginButton.setOnClickListener {
             val username = binding.emailInput.text.toString()
@@ -62,7 +60,10 @@ class LoginFragment : Fragment() {
                 }
                 is AuthState.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
+                    binding.loginButton.isEnabled = true
+                    Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                    // Notify activity-scoped LogEntryViewModel about new active user so it refreshes queries
+                    entriesViewModel.refreshActiveUser()
                     findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
                 }
                 is AuthState.Error -> {
