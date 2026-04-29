@@ -7,6 +7,7 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -42,6 +43,11 @@ import java.io.File
  */
 class CreateEntryFragment : Fragment() {
 
+    companion object {
+        private const val AUDIO_PERMISSION = Manifest.permission.RECORD_AUDIO
+        private const val TAG = "CreateEntryFragment"
+    }
+
     private lateinit var binding: FragmentCreateEntryBinding
     private val viewModel: LogEntryViewModel by activityViewModels()
     private val supabaseManager = SupabaseManager()
@@ -76,23 +82,19 @@ class CreateEntryFragment : Fragment() {
             }.onFailure {
                 binding.selectedImagePreview.visibility = View.GONE
             }
-        }
-    }
+         }
+      }
 
-    companion object {
-        private const val AUDIO_PERMISSION = Manifest.permission.RECORD_AUDIO
-    }
+      override fun onCreateView(
+         inflater: LayoutInflater,
+         container: ViewGroup?,
+         savedInstanceState: Bundle?
+     ): View {
+         binding = FragmentCreateEntryBinding.inflate(inflater, container, false)
+         return binding.root
+     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        binding = FragmentCreateEntryBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         sessionManager = SessionManager(requireContext())
 
@@ -133,6 +135,7 @@ class CreateEntryFragment : Fragment() {
     /**
      * Save entry to database
      * Validates input and creates LogEntry
+     * Then uploads media to Supabase if available
      */
     private fun saveEntry() {
         if (isRecording) {
@@ -165,24 +168,31 @@ class CreateEntryFragment : Fragment() {
             return
         }
 
-        // Create entry
+        // Create entry without media URIs initially
+        // Media will be uploaded and URIs set separately
         val entry = LogEntry(
             userId = userId,
             title = title,
             content = content,
             category = category,
-            imageUri = selectedImageUri?.toString().orEmpty(),
-            audioUri = audioFilePath.orEmpty(),
+            imageUri = "",
+            audioUri = "",
             timestamp = System.currentTimeMillis(),
             lastModified = System.currentTimeMillis()
         )
 
+        Log.d(TAG, "[saveEntry] Saving entry locally")
         // Save using ViewModel
         viewModel.insertEntry(entry)
 
         Toast.makeText(requireContext(), "Entry saved!", Toast.LENGTH_SHORT).show()
 
-        // Open list so user can immediately see the new saved entry.
+        // Upload media to Supabase asynchronously
+        // This will update the entry with media URLs once upload completes
+        Log.d(TAG, "[saveEntry] Starting media upload (async)")
+        viewModel.uploadMediaAndUpdateEntry(entry, selectedImageUri, audioFilePath)
+
+        // Open list so user can immediately see the new saved entry
         findNavController().navigate(
             com.example.lifelogger.R.id.entryListFragment,
             null,

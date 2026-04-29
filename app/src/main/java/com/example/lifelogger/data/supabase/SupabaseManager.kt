@@ -1,5 +1,7 @@
 package com.example.lifelogger.data.supabase
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.example.lifelogger.data.model.LogEntry
 import io.github.jan.supabase.SupabaseClient
@@ -13,6 +15,7 @@ import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * SupabaseManager handles all cloud synchronization and authentication using Supabase:
@@ -103,27 +106,141 @@ class SupabaseManager {
         }
     }
 
-    /**
-     * Delete an entry from Supabase
-     */
-    suspend fun deleteEntry(entryId: Long) = withContext(Dispatchers.IO) {
-        try {
-            val userId = currentUserId()
-            if (userId.isBlank()) {
-                Log.d(TAG, "Skipping delete: no active authenticated user")
-                return@withContext
-            }
+     /**
+      * Delete an entry from Supabase
+      */
+     suspend fun deleteEntry(entryId: Long) = withContext(Dispatchers.IO) {
+         try {
+             val userId = currentUserId()
+             if (userId.isBlank()) {
+                 Log.d(TAG, "Skipping delete: no active authenticated user")
+                 return@withContext
+             }
 
-            client.postgrest[TABLE_ENTRIES].delete {
-                filter {
-                    eq("id", entryId)
-                    eq("userId", userId)
-                }
-            }
-            Log.d(TAG, "Entry $entryId deleted from Supabase")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error deleting from Supabase: ${e.message}")
-            throw e
-        }
-    }
+             client.postgrest[TABLE_ENTRIES].delete {
+                 filter {
+                     eq("id", entryId)
+                     eq("userId", userId)
+                 }
+             }
+             Log.d(TAG, "Entry $entryId deleted from Supabase")
+         } catch (e: Exception) {
+             Log.e(TAG, "Error deleting from Supabase: ${e.message}")
+             throw e
+         }
+     }
+
+     /**
+      * Upload image file to Supabase Storage
+      * Returns the storage path (bucket_path) that should be stored in database
+      */
+     suspend fun uploadImage(context: Context, imageUri: Uri, userId: String, entryId: Long): String? = withContext(Dispatchers.IO) {
+         try {
+             if (userId.isBlank() || entryId <= 0) {
+                 Log.w(TAG, "Cannot upload image: invalid userId or entryId")
+                 return@withContext null
+             }
+
+             // Read file from URI and get bytes
+             val inputStream = context.contentResolver.openInputStream(imageUri)
+             val bytes = inputStream?.readBytes() ?: run {
+                 Log.w(TAG, "Could not read image file")
+                 return@withContext null
+             }
+
+             // Generate storage path: users/{userId}/entries/{entryId}/image.jpg
+             val storagePath = "users/$userId/entries/$entryId/image.jpg"
+
+             // Upload to Supabase Storage
+             val bucket = client.storage.from("entry_media")
+             bucket.upload(storagePath, bytes, upsert = true)
+             Log.d(TAG, "Image uploaded to storage: $storagePath")
+             storagePath
+         } catch (e: Exception) {
+             Log.e(TAG, "Error uploading image: ${e.message}")
+             null
+         }
+     }
+
+     /**
+      * Upload audio file to Supabase Storage
+      * Returns the storage path (bucket_path) that should be stored in database
+      */
+     suspend fun uploadAudio(audioFilePath: String, userId: String, entryId: Long): String? = withContext(Dispatchers.IO) {
+         try {
+             if (userId.isBlank() || entryId <= 0 || audioFilePath.isEmpty()) {
+                 Log.w(TAG, "Cannot upload audio: invalid userId, entryId, or path")
+                 return@withContext null
+             }
+
+             val audioFile = File(audioFilePath)
+             if (!audioFile.exists()) {
+                 Log.w(TAG, "Audio file does not exist: $audioFilePath")
+                 return@withContext null
+             }
+
+             val bytes = audioFile.readBytes()
+             if (bytes.isEmpty()) {
+                 Log.w(TAG, "Audio file is empty")
+                 return@withContext null
+             }
+
+             // Generate storage path: users/{userId}/entries/{entryId}/audio.m4a
+             val storagePath = "users/$userId/entries/$entryId/audio.m4a"
+
+             // Upload to Supabase Storage
+             val bucket = client.storage.from("entry_media")
+             bucket.upload(storagePath, bytes, upsert = true)
+             Log.d(TAG, "Audio uploaded to storage: $storagePath")
+             storagePath
+         } catch (e: Exception) {
+             Log.e(TAG, "Error uploading audio: ${e.message}")
+             null
+         }
+     }
+
+     /**
+      * Get public URL for a stored media file
+      * Works for any file in Supabase Storage
+      */
+     fun getMediaUrl(storagePath: String): String {
+         return "$SUPABASE_URL/storage/v1/object/public/entry_media/$storagePath"
+     }
+
+     /**
+      * Download media file from storage path (or generate public URL)
+      * For simple retrieval, just use getMediaUrl() to get the public URL
+      * This method is for cases where you need to download the actual bytes
+      */
+     suspend fun downloadMediaBytes(storagePath: String): ByteArray? = withContext(Dispatchers.IO) {
+         try {
+             if (storagePath.isBlank()) {
+                 Log.w(TAG, "Cannot download media: empty storagePath")
+                 return@withContext null
+             }
+
+             val bucket = client.storage.from("entry_media")
+             val bytes = bucket.downloadAuthenticated(storagePath)
+             Log.d(TAG, "Downloaded media from storage: $storagePath (${bytes.size} bytes)")
+             bytes
+         } catch (e: Exception) {
+             Log.e(TAG, "Error downloading media: ${e.message}")
+             null
+         }
+     }
+
+     /**
+      * Delete media file from storage
+      */
+     suspend fun deleteMedia(storagePath: String) = withContext(Dispatchers.IO) {
+         try {
+             if (storagePath.isBlank()) return@withContext
+
+             val bucket = client.storage.from("entry_media")
+             bucket.delete(storagePath)
+             Log.d(TAG, "Media deleted from storage: $storagePath")
+         } catch (e: Exception) {
+             Log.e(TAG, "Error deleting media: ${e.message}")
+         }
+     }
 }

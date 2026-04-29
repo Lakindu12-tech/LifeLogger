@@ -187,5 +187,55 @@ class LogEntryViewModel(application: Application) : AndroidViewModel(application
             syncIfPossible()
         }
     }
+
+    /**
+     * Upload media files for an entry and update the entry with storage URLs
+     * Called after entry is saved locally
+     */
+    fun uploadMediaAndUpdateEntry(entry: LogEntry, imageUri: android.net.Uri?, audioFilePath: String?) {
+        Log.d(TAG, "[uploadMediaAndUpdateEntry] Starting media upload for entry ${entry.id}")
+        viewModelScope.launch {
+            try {
+                var updatedEntry = entry.copy()
+                val userId = currentUserId()
+                
+                if (userId.isBlank()) {
+                    Log.w(TAG, "[uploadMediaAndUpdateEntry] No userId, skipping media upload")
+                    return@launch
+                }
+
+                // Upload image if provided
+                if (imageUri != null) {
+                    Log.d(TAG, "[uploadMediaAndUpdateEntry] Uploading image...")
+                    val imagePath = supabaseManager.uploadImage(appContext, imageUri, userId, entry.id)
+                    if (imagePath != null) {
+                        val imageUrl = supabaseManager.getMediaUrl(imagePath)
+                        updatedEntry = updatedEntry.copy(imageUri = imageUrl)
+                        Log.d(TAG, "[uploadMediaAndUpdateEntry] Image uploaded, URL: ${imageUrl.take(50)}...")
+                    }
+                }
+
+                // Upload audio if provided
+                if (audioFilePath != null && audioFilePath.isNotEmpty()) {
+                    Log.d(TAG, "[uploadMediaAndUpdateEntry] Uploading audio...")
+                    val audioPath = supabaseManager.uploadAudio(audioFilePath, userId, entry.id)
+                    if (audioPath != null) {
+                        val audioUrl = supabaseManager.getMediaUrl(audioPath)
+                        updatedEntry = updatedEntry.copy(audioUri = audioUrl)
+                        Log.d(TAG, "[uploadMediaAndUpdateEntry] Audio uploaded, URL: ${audioUrl.take(50)}...")
+                    }
+                }
+
+                // Update entry in database with media URLs
+                if (updatedEntry.imageUri != entry.imageUri || updatedEntry.audioUri != entry.audioUri) {
+                    Log.d(TAG, "[uploadMediaAndUpdateEntry] Updating entry with media URLs")
+                    repository.updateEntry(updatedEntry)
+                    syncIfPossible(userId)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "[uploadMediaAndUpdateEntry] Error uploading media", e)
+            }
+        }
+    }
 }
 

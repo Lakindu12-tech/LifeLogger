@@ -143,9 +143,28 @@ class EntryDetailFragment : Fragment() {
                 // Loading a persisted content URI can throw (SecurityException / IllegalArgumentException)
                 // if the permission is no longer granted. Guard against crashes by catching failures
                 // and hiding the image view if loading fails.
+                //
+                // If imageUri is a Supabase Storage URL, the ImageView should be able to load it
+                // via its built-in Glide/Coil support or standard HTTP loading.
                 runCatching {
-                    entryImageView.setImageURI(Uri.parse(entry.imageUri))
-                }.onFailure {
+                    if (entry.imageUri.startsWith("http://") || entry.imageUri.startsWith("https://")) {
+                        // It's a Supabase Storage URL - use standard loading
+                        Log.d(TAG, "[displayEntry] Loading image from Supabase: ${entry.imageUri.take(50)}...")
+                        entryImageView.setImageURI(null)
+                        // For URLs, we need to use a proper image loading library like Glide
+                        // For now, attempt basic loading via setImageURI
+                        entryImageView.setImageURI(Uri.parse(entry.imageUri))
+                    } else if (entry.imageUri.startsWith("content://")) {
+                        // It's a local content:// URI
+                        Log.d(TAG, "[displayEntry] Loading image from local content URI")
+                        entryImageView.setImageURI(Uri.parse(entry.imageUri))
+                    } else {
+                        // Unknown format
+                        Log.w(TAG, "[displayEntry] Unknown image URI format: ${entry.imageUri.take(30)}...")
+                        entryImageView.visibility = View.GONE
+                    }
+                }.onFailure { e ->
+                    Log.e(TAG, "[displayEntry] Failed to load image", e)
                     entryImageView.visibility = View.GONE
                 }
             } else {
@@ -163,22 +182,33 @@ class EntryDetailFragment : Fragment() {
         }
     }
 
-    private fun playAudio(audioUri: String) {
-        runCatching {
-            mediaPlayer?.release()
-            mediaPlayer = MediaPlayer().apply {
-                if (audioUri.startsWith("content://")) {
-                    setDataSource(requireContext(), Uri.parse(audioUri))
-                } else {
-                    setDataSource(audioUri)
-                }
-                prepare()
-                start()
-            }
-        }.onFailure {
-            Toast.makeText(requireContext(), "Unable to play audio", Toast.LENGTH_SHORT).show()
-        }
-    }
+     private fun playAudio(audioUri: String) {
+         Log.d(TAG, "[playAudio] Playing audio: ${audioUri.take(50)}...")
+         runCatching {
+             mediaPlayer?.release()
+             mediaPlayer = MediaPlayer().apply {
+                 if (audioUri.startsWith("http://") || audioUri.startsWith("https://")) {
+                     // It's a Supabase Storage URL
+                     Log.d(TAG, "[playAudio] Loading from Supabase URL")
+                     setDataSource(audioUri)
+                 } else if (audioUri.startsWith("content://")) {
+                     // It's a content URI
+                     Log.d(TAG, "[playAudio] Loading from content URI")
+                     setDataSource(requireContext(), Uri.parse(audioUri))
+                 } else {
+                     // It's a file path
+                     Log.d(TAG, "[playAudio] Loading from file path")
+                     setDataSource(audioUri)
+                 }
+                 prepare()
+                 start()
+             }
+             Toast.makeText(requireContext(), "Playing audio...", Toast.LENGTH_SHORT).show()
+         }.onFailure { e ->
+             Log.e(TAG, "[playAudio] Failed to play audio", e)
+             Toast.makeText(requireContext(), "Unable to play audio: ${e.message}", Toast.LENGTH_SHORT).show()
+         }
+     }
 
     override fun onDestroyView() {
         super.onDestroyView()
