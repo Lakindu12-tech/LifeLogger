@@ -11,6 +11,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -168,6 +169,12 @@ class CreateEntryFragment : Fragment() {
             return
         }
 
+        val storedImagePath = selectedImageUri?.let { copyImageToInternalStorage(it) }.orEmpty()
+        if (selectedImageUri != null && storedImagePath.isEmpty()) {
+            Toast.makeText(requireContext(), "Image could not be saved", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         // Create entry WITH local media paths
         // Media files are saved locally; we store the local file paths in database
         val entry = LogEntry(
@@ -175,8 +182,8 @@ class CreateEntryFragment : Fragment() {
             title = title,
             content = content,
             category = category,
-            imageUri = selectedImageUri?.toString().orEmpty(),  // Store local URI
-            audioUri = audioFilePath.orEmpty(),  // Store local file path
+            imageUri = storedImagePath,
+            audioUri = audioFilePath.orEmpty(),
             timestamp = System.currentTimeMillis(),
             lastModified = System.currentTimeMillis()
         )
@@ -187,7 +194,6 @@ class CreateEntryFragment : Fragment() {
 
         Toast.makeText(requireContext(), "Entry saved!", Toast.LENGTH_SHORT).show()
 
-
         // Open list so user can immediately see the new saved entry
         findNavController().navigate(
             com.example.lifelogger.R.id.entryListFragment,
@@ -196,6 +202,34 @@ class CreateEntryFragment : Fragment() {
                 .setPopUpTo(com.example.lifelogger.R.id.createEntryFragment, true)
                 .build()
         )
+    }
+
+    private fun copyImageToInternalStorage(sourceUri: Uri): String? {
+        return runCatching {
+            val context = requireContext()
+            val extension = resolveImageExtension(sourceUri)
+            val fileName = "image_${System.currentTimeMillis()}_${sourceUri.hashCode().toString(16)}.$extension"
+            val destinationFile = File(context.filesDir, fileName)
+
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                destinationFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: return null
+
+            if (destinationFile.exists() && destinationFile.length() > 0L) {
+                destinationFile.absolutePath
+            } else {
+                destinationFile.delete()
+                null
+            }
+        }.getOrNull()
+    }
+
+    private fun resolveImageExtension(uri: Uri): String {
+        val mimeType = requireContext().contentResolver.getType(uri)
+        val extension = mimeType?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+        return extension?.ifBlank { null } ?: "jpg"
     }
 
     private fun requestAudioPermissionIfNeeded() {
@@ -283,4 +317,3 @@ class CreateEntryFragment : Fragment() {
         isRecording = false
     }
 }
-

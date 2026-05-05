@@ -1,5 +1,6 @@
 package com.example.lifelogger.ui.fragment
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.media.MediaPlayer
 import android.net.Uri
@@ -144,24 +145,30 @@ class EntryDetailFragment : Fragment() {
                 // if the permission is no longer granted. Guard against crashes by catching failures
                 // and hiding the image view if loading fails.
                 //
-                // If imageUri is a Supabase Storage URL, the ImageView should be able to load it
-                // via its built-in Glide/Coil support or standard HTTP loading.
+                // Support both local file paths and legacy content:// URIs.
                 runCatching {
-                    if (entry.imageUri.startsWith("http://") || entry.imageUri.startsWith("https://")) {
-                        // It's a Supabase Storage URL - use standard loading
-                        Log.d(TAG, "[displayEntry] Loading image from Supabase: ${entry.imageUri.take(50)}...")
-                        entryImageView.setImageURI(null)
-                        // For URLs, we need to use a proper image loading library like Glide
-                        // For now, attempt basic loading via setImageURI
-                        entryImageView.setImageURI(Uri.parse(entry.imageUri))
-                    } else if (entry.imageUri.startsWith("content://")) {
-                        // It's a local content:// URI
-                        Log.d(TAG, "[displayEntry] Loading image from local content URI")
-                        entryImageView.setImageURI(Uri.parse(entry.imageUri))
-                    } else {
-                        // Unknown format
-                        Log.w(TAG, "[displayEntry] Unknown image URI format: ${entry.imageUri.take(30)}...")
-                        entryImageView.visibility = View.GONE
+                    when {
+                        entry.imageUri.startsWith("http://") || entry.imageUri.startsWith("https://") -> {
+                            Log.d(TAG, "[displayEntry] Loading image from Supabase: ${entry.imageUri.take(50)}...")
+                            entryImageView.setImageURI(Uri.parse(entry.imageUri))
+                        }
+                        entry.imageUri.startsWith("content://") -> {
+                            Log.d(TAG, "[displayEntry] Loading image from local content URI")
+                            entryImageView.setImageURI(Uri.parse(entry.imageUri))
+                        }
+                        java.io.File(entry.imageUri).exists() -> {
+                            Log.d(TAG, "[displayEntry] Loading image from local file path")
+                            val bitmap = BitmapFactory.decodeFile(entry.imageUri)
+                            if (bitmap != null) {
+                                entryImageView.setImageBitmap(bitmap)
+                            } else {
+                                throw IllegalStateException("Bitmap decode failed for ${entry.imageUri}")
+                            }
+                        }
+                        else -> {
+                            Log.w(TAG, "[displayEntry] Unknown image URI format: ${entry.imageUri.take(30)}...")
+                            entryImageView.visibility = View.GONE
+                        }
                     }
                 }.onFailure { e ->
                     Log.e(TAG, "[displayEntry] Failed to load image", e)
@@ -216,4 +223,3 @@ class EntryDetailFragment : Fragment() {
         mediaPlayer = null
     }
 }
-
